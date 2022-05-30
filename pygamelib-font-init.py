@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from pygamelib.gfx import core
-from pygamelib import base, engine, constants
+from pygamelib import base, constants
 import os
 import json
 import argparse
@@ -140,6 +140,15 @@ parser.add_argument(
     help="Generate extra glyphs like @, #, punctuations, etc.",
 )
 
+parser.add_argument(
+    "-e",
+    "--empty",
+    action=argparse.BooleanOptionalAction,
+    default=False,
+    help="By default, the generated glyph are filled with the character that they "
+    "represent. If you prefer to have empty glyphs, use this switch.",
+)
+
 parser.add_argument("font_name", help="The name of the font to create.")
 
 args = parser.parse_args()
@@ -154,7 +163,7 @@ config = {
     "vertical_spacing": args.vertical_spacing,
     "fg_color": {"red": 255, "green": 255, "blue": 255},
     "bg_color": None,
-    "glyphs_map": {"default": "#"},
+    "glyphs_map": {},
 }
 
 font_name = args.font_name
@@ -182,17 +191,53 @@ if args.numbers:
 if args.extra_glyphs:
     needed_glyphs += list(string.punctuation)
 
+if args.default_glyph not in needed_glyphs:
+    print(
+        base.Text(
+            f'Glyph "{args.default_glyph}" cannot be the default glyph as it is not in '
+            "the list of generated glyphs.",
+            fg_color=core.Color(255, 0, 0),
+        )
+    )
+    needed_glyphs = ["default"] + needed_glyphs
+    print("The font is generated with the default glyph as empty.")
+else:
+    config["glyphs_map"]["default"] = args.default_glyph
+if args.default_glyph == "":
+    needed_glyphs = ["default"] + needed_glyphs
+
+if args.lower_case and not args.upper_case:
+    for c in list(string.ascii_lowercase):
+        config["glyphs_map"][c] = c.upper()
+    print(
+        "The mapping from lower case to upper case was automatically added. Now "
+        "Font.glyph('a') and Font.glyph('A') will return the same thing."
+    )
+
+if args.upper_case and not args.lower_case:
+    for c in list(string.ascii_uppercase):
+        config["glyphs_map"][c] = c.lower()
+    print(
+        "The mapping from upper case to lower case was automatically added. Now "
+        "Font.glyph('a') and Font.glyph('A') will return the same thing."
+    )
+
 print("Generating sprites...", end="")
 for char in needed_glyphs:
     spr = None
-
+    model = " "
+    if not args.empty:
+        if char == "default":
+            model = "."
+        else:
+            model = char
     spr = core.Sprite(
         size=[config["width"], config["height"]],
         default_sprixel=core.Sprixel(" "),
     )
     for row in range(config["height"]):
         for col in range(config["width"]):
-            spr.set_sprixel(row, col, core.Sprixel(" ", fg_color=white))
+            spr.set_sprixel(row, col, core.Sprixel(model, fg_color=white))
 
     spr.name = char
     fc.add(spr)
@@ -229,5 +274,22 @@ for key in [
 ]:
     k = base.Text(f"{key}:", core.Color(0, 255, 255), style=constants.BOLD)
     print(f"{k}: {config[key]}")
-
-print(f"The font was saved in: {output_dir}/pygamelib/assets/fonts/{font_name}")
+print(
+    f"{base.Text('Glyphs generated:', core.Color(0, 255, 255), style=constants.BOLD)}: "
+    f"{len(needed_glyphs)}"
+)
+out = base.Text(
+    f"{output_dir}/pygamelib/assets/fonts/{font_name}/",
+    core.Color(255, 0, 255),
+    style=constants.BOLD,
+)
+print(f"The font was saved in: {out}")
+print(
+    f"\nThe glyph file ({output_dir}/pygamelib/assets/fonts/{font_name}/glyphs.spr) can"
+    " now be edited with pgl-sprite-editor.py."
+)
+if not args.empty:
+    print(
+        "\nAll glyphs are filled with the letter that they should represent. If you "
+        "want the glyph to be empty, use --empty."
+    )
