@@ -191,7 +191,7 @@ if args.numbers:
 if args.extra_glyphs:
     needed_glyphs += list(string.punctuation)
 
-if args.default_glyph not in needed_glyphs:
+if args.default_glyph != "" and args.default_glyph not in needed_glyphs:
     print(
         base.Text(
             f'Glyph "{args.default_glyph}" cannot be the default glyph as it is not in '
@@ -208,7 +208,7 @@ if args.default_glyph == "":
 
 if args.lower_case and not args.upper_case:
     for c in list(string.ascii_lowercase):
-        config["glyphs_map"][c] = c.upper()
+        config["glyphs_map"][c.upper()] = c
     print(
         "The mapping from lower case to upper case was automatically added. Now "
         "Font.glyph('a') and Font.glyph('A') will return the same thing."
@@ -216,7 +216,7 @@ if args.lower_case and not args.upper_case:
 
 if args.upper_case and not args.lower_case:
     for c in list(string.ascii_uppercase):
-        config["glyphs_map"][c] = c.lower()
+        config["glyphs_map"][c.lower()] = c
     print(
         "The mapping from upper case to lower case was automatically added. Now "
         "Font.glyph('a') and Font.glyph('A') will return the same thing."
